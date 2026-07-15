@@ -68,11 +68,11 @@ Response:
 }
 ```
 
-| Method | Path | Purpose |
-|--------|------|---------|
-| POST | `/v1/transcribe` | Multipart audio upload → transcript JSON. Optional `language` field. |
-| GET | `/v1/providers` | Providers currently available |
-| GET | `/health` | Liveness |
+| Method | Path               | Purpose                                                                |
+| ------ | ------------------ | ---------------------------------------------------------------------- |
+| POST   | `/v1/transcribe` | Multipart audio upload → transcript JSON. Optional`language` field. |
+| GET    | `/v1/providers`  | Providers currently available                                          |
+| GET    | `/health`        | Liveness                                                               |
 
 Errors use a consistent envelope with correct status codes: `400` invalid audio,
 `422` unsupported format, `502` all providers failed.
@@ -81,15 +81,15 @@ Errors use a consistent envelope with correct status codes: `400` invalid audio,
 
 Copy `.env.example` to `.env`. Everything is optional.
 
-| Variable | Default | Meaning |
-|----------|---------|---------|
-| `ELEVENLABS_API_KEY` | — | Enables the ElevenLabs provider |
-| `DEEPGRAM_API_KEY` | — | Enables the Deepgram provider |
-| `PROVIDER_ORDER` | `elevenlabs,deepgram,local` | Fallback order; unavailable providers are skipped |
-| `WHISPER_MODEL_SIZE` | `base` | Local model size (`tiny`…`large-v3`) |
-| `WHISPER_COMPUTE_TYPE` | `int8` | Local compute type |
-| `CHUNK_THRESHOLD_SECONDS` | `600` | Files longer than this are chunked |
-| `MAX_UPLOAD_MB` | `100` | Upload size limit |
+| Variable                    | Default                       | Meaning                                           |
+| --------------------------- | ----------------------------- | ------------------------------------------------- |
+| `ELEVENLABS_API_KEY`      | —                            | Enables the ElevenLabs provider                   |
+| `DEEPGRAM_API_KEY`        | —                            | Enables the Deepgram provider                     |
+| `PROVIDER_ORDER`          | `elevenlabs,deepgram,local` | Fallback order; unavailable providers are skipped |
+| `WHISPER_MODEL_SIZE`      | `base`                      | Local model size (`tiny`…`large-v3`)         |
+| `WHISPER_COMPUTE_TYPE`    | `int8`                      | Local compute type                                |
+| `CHUNK_THRESHOLD_SECONDS` | `600`                       | Files longer than this are chunked                |
+| `MAX_UPLOAD_MB`           | `100`                       | Upload size limit                                 |
 
 ## Record your own test audio
 
