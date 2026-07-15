@@ -31,5 +31,19 @@ def test_elevenlabs_groups_words_into_segments(mock_client_cls):
     assert result.segments[0].end == 0.9
 
 
+@patch("app.providers.elevenlabs_provider.ElevenLabs")
+def test_elevenlabs_omits_language_code_when_auto_detecting(mock_client_cls):
+    client = MagicMock()
+    client.speech_to_text.convert.return_value = _fake_response()
+    mock_client_cls.return_value = client
+
+    provider = ElevenLabsProvider(api_key="k")
+    with patch.object(Path, "open"):
+        provider.transcribe(Path("x.mp3"), language=None)
+
+    # Scribe rejects an empty language_code, so it must not be sent at all.
+    assert "language_code" not in client.speech_to_text.convert.call_args.kwargs
+
+
 def test_elevenlabs_unavailable_without_key():
     assert ElevenLabsProvider(api_key=None).is_available() is False

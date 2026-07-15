@@ -22,12 +22,13 @@ class DeepgramProvider(TranscriptionProvider):
     def transcribe(self, audio_path: Path, language: str | None = None) -> TranscriptionResult:
         if self._client is None:
             raise ProviderError("deepgram api key not configured")
+        # A falsy language means auto-detect: enable detection and omit the hint.
         options = PrerecordedOptions(
             model="nova-2",
             smart_format=True,
             utterances=True,
-            detect_language=language is None,
-            language=language,
+            detect_language=not language,
+            language=language or None,
         )
         try:
             payload = {"buffer": audio_path.read_bytes()}

@@ -29,10 +29,12 @@ class ElevenLabsProvider(TranscriptionProvider):
     def transcribe(self, audio_path: Path, language: str | None = None) -> TranscriptionResult:
         if self._client is None:
             raise ProviderError("elevenlabs api key not configured")
+        # Scribe rejects an empty language_code; omit it entirely to auto-detect.
+        extra = {"language_code": language} if language else {}
         try:
             with audio_path.open("rb") as handle:
                 response = self._client.speech_to_text.convert(
-                    file=handle, model_id=_MODEL_ID, language_code=language
+                    file=handle, model_id=_MODEL_ID, **extra
                 )
             words = [
                 {"text": w.text, "start": w.start, "end": w.end}

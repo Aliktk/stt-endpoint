@@ -34,11 +34,12 @@ def providers() -> dict[str, list[str]]:
 async def transcribe(
     file: UploadFile = File(...), language: str | None = Form(default=None)
 ) -> TranscriptionResult:
+    normalized_language = (language or "").strip() or None
     suffix = Path(file.filename or "audio").suffix or ".wav"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         tmp.write(await file.read())
         temp_path = Path(tmp.name)
     try:
-        return _service().transcribe(temp_path, language)
+        return _service().transcribe(temp_path, normalized_language)
     finally:
         temp_path.unlink(missing_ok=True)
