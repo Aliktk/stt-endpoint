@@ -27,6 +27,13 @@ dev = [
     "ruff>=0.7,<0.8",
     "black>=24.10,<25",
 ]
+# Microphone recording helper (samples/audio_creation.py). Optional — only
+# needed to record your own test audio.
+record = [
+    "sounddevice>=0.4,<0.5",
+    "soundfile>=0.12,<0.13",
+    "numpy>=1.26",
+]
 
 [build-system]
 requires = ["hatchling"]

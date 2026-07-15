@@ -9,3 +9,7 @@ venv/
 .coverage
 htmlcov/
 .streamlit/secrets.toml
+samples/*.wav
+samples/*.mp3
+samples/*_chunk_*
+samples/recordings/
