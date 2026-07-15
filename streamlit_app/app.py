@@ -13,16 +13,36 @@ import streamlit as st
 DEFAULT_API = "http://localhost:8000"
 UPLOAD_TYPES = ["wav", "mp3", "m4a", "flac", "ogg", "webm", "mp4", "aac"]
 
-st.set_page_config(page_title="STT Endpoint", page_icon="🎙️", layout="wide")
+# Friendly label -> language code sent to the API ("" means auto-detect).
+LANGUAGES = {
+    "Auto-detect": "",
+    "English": "en",
+    "Spanish": "es",
+    "French": "fr",
+    "German": "de",
+    "Italian": "it",
+    "Portuguese": "pt",
+    "Dutch": "nl",
+    "Hindi": "hi",
+    "Urdu": "ur",
+    "Arabic": "ar",
+    "Chinese": "zh",
+    "Japanese": "ja",
+    "Korean": "ko",
+    "Russian": "ru",
+}
+
+st.set_page_config(page_title="STT Endpoint", page_icon="🎙️", layout="centered")
 
 
-def fetch_providers(api_url: str) -> list[str]:
+def fetch_providers(api_url: str) -> list[str] | None:
+    """Return available providers, or None when the API is unreachable."""
     try:
         resp = requests.get(f"{api_url}/v1/providers", timeout=5)
         resp.raise_for_status()
         return resp.json().get("available", [])
     except requests.RequestException:
-        return []
+        return None
 
 
 def request_transcript(api_url: str, name: str, blob: bytes, language: str) -> requests.Response:
@@ -43,54 +63,59 @@ def inject_styles() -> None:
     st.markdown(
         """
         <style>
-          .block-container { padding-top: 2rem; max-width: 1120px; }
+          .block-container { padding-top: 2rem; max-width: 820px; }
           .hero {
             background: linear-gradient(120deg, #6C5CE7 0%, #8E7BEF 45%, #48C6EF 100%);
-            padding: 1.6rem 1.8rem; border-radius: 16px; margin-bottom: 1.4rem;
-            box-shadow: 0 10px 30px rgba(108, 92, 231, 0.25);
+            padding: 1.7rem 1.9rem; border-radius: 18px; margin-bottom: 1.2rem;
+            box-shadow: 0 12px 34px rgba(108, 92, 231, 0.28);
           }
-          .hero h1 { color: #fff; margin: 0; font-size: 1.9rem; letter-spacing: -0.5px; }
-          .hero p { color: rgba(255,255,255,0.9); margin: 0.35rem 0 0; font-size: 0.98rem; }
+          .hero h1 { color: #fff; margin: 0; font-size: 2rem; letter-spacing: -0.5px; }
+          .hero p { color: rgba(255,255,255,0.92); margin: 0.4rem 0 0; font-size: 1rem; }
+          .status-bar {
+            display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+            background: #161923; border: 1px solid #262A38; border-radius: 12px;
+            padding: 0.7rem 1rem; margin-bottom: 1.1rem;
+          }
+          .status-bar .label { color: #8B93A7; font-size: 0.85rem; margin-right: 0.2rem; }
           .pill {
-            display: inline-block; padding: 0.25rem 0.7rem; border-radius: 999px;
-            background: rgba(108,92,231,0.18); color: #C4B9FF; font-size: 0.82rem;
-            font-weight: 600; margin: 0.15rem 0.3rem 0.15rem 0;
+            display: inline-block; padding: 0.25rem 0.75rem; border-radius: 999px;
+            font-size: 0.82rem; font-weight: 600;
           }
           .pill-live { background: rgba(46, 204, 113, 0.16); color: #6FE39F; }
+          .pill-off  { background: rgba(231, 76, 60, 0.16); color: #FF8B7E; }
           .transcript-card {
             background: #161923; border: 1px solid #262A38; border-radius: 12px;
-            padding: 1.1rem 1.3rem; line-height: 1.65; font-size: 1.02rem;
+            padding: 1.15rem 1.35rem; line-height: 1.65; font-size: 1.05rem;
           }
-          div[data-testid="stMetricValue"] { font-size: 1.35rem; }
+          div[data-testid="stMetric"] {
+            background: #161923; border: 1px solid #262A38; border-radius: 12px;
+            padding: 0.7rem 0.9rem;
+          }
+          div[data-testid="stMetricValue"] { font-size: 1.3rem; }
         </style>
         """,
         unsafe_allow_html=True,
     )
 
 
-def render_sidebar() -> tuple[str, str]:
-    with st.sidebar:
-        st.header("⚙️ Settings")
-        api_url = st.text_input("API URL", value=DEFAULT_API).rstrip("/")
-        language = st.text_input("Language code", value="", placeholder="auto-detect")
-        st.divider()
-        st.subheader("Providers online")
-        available = fetch_providers(api_url)
-        if available:
-            st.markdown(
-                "".join(f"<span class='pill pill-live'>● {p}</span>" for p in available),
-                unsafe_allow_html=True,
-            )
-        else:
-            st.warning("API unreachable — start it with `uv run uvicorn app.main:app`.")
-    return api_url, language
+def render_status(providers: list[str] | None) -> None:
+    if providers is None:
+        body = "<span class='pill pill-off'>● API offline</span>"
+    elif providers:
+        pills = "".join(f"<span class='pill pill-live'>● {p}</span>" for p in providers)
+        body = f"<span class='label'>Providers online</span>{pills}"
+    else:
+        body = "<span class='pill pill-off'>● no providers available</span>"
+    st.markdown(f"<div class='status-bar'>{body}</div>", unsafe_allow_html=True)
 
 
 def render_result(data: dict, elapsed: float, source_name: str) -> None:
-    left, mid, right = st.columns(3)
-    left.metric("Provider", data["provider"])
-    mid.metric("Language", data["language"])
-    right.metric("Elapsed", f"{elapsed:.1f}s")
+    st.divider()
+    a, b, c, d = st.columns(4)
+    a.metric("Provider", data["provider"])
+    b.metric("Language", data["language"])
+    c.metric("Duration", f"{data['duration']:.1f}s")
+    d.metric("Elapsed", f"{elapsed:.1f}s")
 
     st.subheader("Transcript")
     st.markdown(
@@ -109,16 +134,16 @@ def render_result(data: dict, elapsed: float, source_name: str) -> None:
     ]
     st.dataframe(rows, use_container_width=True, hide_index=True)
 
-    col_json, col_txt = st.columns(2)
-    col_json.download_button(
-        "⬇️ Download JSON",
+    left, right = st.columns(2)
+    left.download_button(
+        "⬇️  Download JSON",
         data=json.dumps(data, indent=2),
         file_name=f"{source_name}.transcript.json",
         mime="application/json",
         use_container_width=True,
     )
-    col_txt.download_button(
-        "⬇️ Download text",
+    right.download_button(
+        "⬇️  Download text",
         data=data["text"],
         file_name=f"{source_name}.txt",
         mime="text/plain",
@@ -135,21 +160,28 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
-    api_url, language = render_sidebar()
+    with st.expander("Advanced settings"):
+        api_url = st.text_input("API URL", value=DEFAULT_API).rstrip("/")
 
-    uploaded = st.file_uploader("Drop an audio file to transcribe", type=UPLOAD_TYPES)
+    render_status(fetch_providers(api_url))
+
+    uploaded = st.file_uploader("Upload an audio file", type=UPLOAD_TYPES)
     if uploaded is None:
-        st.info("Supported formats: " + ", ".join(UPLOAD_TYPES).upper())
+        st.caption("Supported formats: " + ", ".join(UPLOAD_TYPES).upper())
         return
 
     st.audio(uploaded)
-    if not st.button("Transcribe", type="primary", use_container_width=True):
+    picker, action = st.columns([2, 1])
+    label = picker.selectbox("Language", list(LANGUAGES), index=0)
+    action.markdown("<div style='height:1.75rem'></div>", unsafe_allow_html=True)
+    go = action.button("Transcribe", type="primary", use_container_width=True)
+    if not go:
         return
 
     started = time.time()
     with st.spinner("Transcribing… larger files are chunked automatically."):
         try:
-            resp = request_transcript(api_url, uploaded.name, uploaded.getvalue(), language)
+            resp = request_transcript(api_url, uploaded.name, uploaded.getvalue(), LANGUAGES[label])
         except requests.RequestException as exc:
             st.error(f"Could not reach the API at {api_url}. Is it running? ({exc})")
             return

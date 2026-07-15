@@ -9,6 +9,31 @@ from app.schemas import TranscriptionResult
 
 _MODEL_ID = "scribe_v1"
 
+# Scribe expects ISO 639-3 codes; callers (and other providers) commonly use
+# 639-1. Map the languages the UI offers so a picked language works here too.
+_ISO_639_1_TO_3 = {
+    "en": "eng",
+    "es": "spa",
+    "fr": "fra",
+    "de": "deu",
+    "it": "ita",
+    "pt": "por",
+    "nl": "nld",
+    "hi": "hin",
+    "ur": "urd",
+    "ar": "ara",
+    "zh": "zho",
+    "ja": "jpn",
+    "ko": "kor",
+    "ru": "rus",
+}
+
+
+def _to_scribe_language(language: str | None) -> str | None:
+    if not language:
+        return None
+    return _ISO_639_1_TO_3.get(language.lower(), language)
+
 
 class ElevenLabsProvider(TranscriptionProvider):
     """Primary provider using ElevenLabs Scribe.
@@ -30,7 +55,8 @@ class ElevenLabsProvider(TranscriptionProvider):
         if self._client is None:
             raise ProviderError("elevenlabs api key not configured")
         # Scribe rejects an empty language_code; omit it entirely to auto-detect.
-        extra = {"language_code": language} if language else {}
+        scribe_language = _to_scribe_language(language)
+        extra = {"language_code": scribe_language} if scribe_language else {}
         try:
             with audio_path.open("rb") as handle:
                 response = self._client.speech_to_text.convert(

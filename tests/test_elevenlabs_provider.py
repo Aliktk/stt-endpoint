@@ -45,5 +45,18 @@ def test_elevenlabs_omits_language_code_when_auto_detecting(mock_client_cls):
     assert "language_code" not in client.speech_to_text.convert.call_args.kwargs
 
 
+@patch("app.providers.elevenlabs_provider.ElevenLabs")
+def test_elevenlabs_maps_iso_639_1_to_639_3(mock_client_cls):
+    client = MagicMock()
+    client.speech_to_text.convert.return_value = _fake_response()
+    mock_client_cls.return_value = client
+
+    provider = ElevenLabsProvider(api_key="k")
+    with patch.object(Path, "open"):
+        provider.transcribe(Path("x.mp3"), language="en")
+
+    assert client.speech_to_text.convert.call_args.kwargs["language_code"] == "eng"
+
+
 def test_elevenlabs_unavailable_without_key():
     assert ElevenLabsProvider(api_key=None).is_available() is False
