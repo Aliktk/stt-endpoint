@@ -3,9 +3,7 @@ from collections.abc import Sequence
 from app.schemas import Segment
 
 
-def group_words_into_segments(
-    words: Sequence[dict], pause_threshold: float = 1.0
-) -> list[Segment]:
+def group_words_into_segments(words: Sequence[dict], pause_threshold: float = 1.0) -> list[Segment]:
     """Merge word-level timings into sentence-like segments.
 
     A new segment starts whenever the silence before a word exceeds
