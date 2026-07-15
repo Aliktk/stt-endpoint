@@ -4,7 +4,7 @@ install:
 	uv sync --extra dev --extra ui
 
 api:
-	uv run uvicorn app.main:app --reload
+	uv run uvicorn app.main:app --reload --port 8080
 
 ui:
 	uv run streamlit run streamlit_app/app.py

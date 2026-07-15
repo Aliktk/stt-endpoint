@@ -22,21 +22,31 @@ Requires [uv](https://docs.astral.sh/uv/) and `ffmpeg` on your PATH
 (`winget install Gyan.FFmpeg` on Windows).
 
 ```bash
-uv sync --extra dev --extra ui        # create the venv and install everything
-cp .env.example .env                  # optional — add provider keys
-uv run uvicorn app.main:app --reload  # API on http://localhost:8000
-uv run streamlit run streamlit_app/app.py   # UI on http://localhost:8501
+uv sync --extra dev --extra ui                     # create the venv and install everything
+cp .env.example .env                               # optional — add provider keys
+uv run uvicorn app.main:app --reload --port 8080   # API on http://localhost:8080
+uv run streamlit run streamlit_app/app.py          # UI on http://localhost:8501
 ```
+
+> **Run these from the project root** (the folder with `pyproject.toml`), **not**
+> from inside `app/` — the import path is `app.main:app`.
+>
+> **Windows `WinError 10013` (socket access forbidden)?** The port is taken or
+> reserved. Pick another one, e.g. `--port 8090`, and set the same URL in the
+> Streamlit UI under *Advanced settings*. Check what holds a port with
+> `Get-NetTCPConnection -LocalPort 8080`.
+
+Open the interactive API docs at **http://localhost:8080/docs**.
 
 ## Using the API
 
 ```bash
 # health + which providers are live
-curl http://localhost:8000/health
-curl http://localhost:8000/v1/providers
+curl http://localhost:8080/health
+curl http://localhost:8080/v1/providers
 
 # transcribe a file (optional language override)
-curl -F "file=@your_audio.wav" -F "language=en" http://localhost:8000/v1/transcribe
+curl -F "file=@your_audio.wav" -F "language=en" http://localhost:8080/v1/transcribe
 ```
 
 Response:
@@ -96,7 +106,7 @@ Providers are mocked, so the suite needs no keys or network. Coverage is ~95%.
 
 ```bash
 docker build -t stt-endpoint .
-docker run -p 8000:8000 --env-file .env stt-endpoint
+docker run -p 8080:8000 --env-file .env stt-endpoint   # then open http://localhost:8080
 ```
 
 ## Project layout

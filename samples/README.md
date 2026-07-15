@@ -25,7 +25,7 @@ uv run python samples/audio_creation.py --name my_note --format mp3
 Transcribe what you recorded (with the API running):
 
 ```bash
-curl -F "file=@samples/recordings/my_note.wav" http://localhost:8000/v1/transcribe
+curl -F "file=@samples/recordings/my_note.wav" http://localhost:8080/v1/transcribe
 ```
 
 Recordings are git-ignored — they stay on your machine.

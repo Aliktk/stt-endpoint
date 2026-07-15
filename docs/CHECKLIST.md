@@ -43,6 +43,6 @@
 uv sync --extra dev --extra ui        # install
 uv run pytest --cov=app               # tests + coverage
 uv run ruff check app tests && uv run black --check app tests   # lint
-uv run uvicorn app.main:app --reload  # API on :8000
+uv run uvicorn app.main:app --reload --port 8080   # API on :8080
 uv run streamlit run streamlit_app/app.py   # UI
 ```

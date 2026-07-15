@@ -10,7 +10,7 @@ import time
 import requests
 import streamlit as st
 
-DEFAULT_API = "http://localhost:8000"
+DEFAULT_API = "http://localhost:8080"
 UPLOAD_TYPES = ["wav", "mp3", "m4a", "flac", "ogg", "webm", "mp4", "aac"]
 
 # Friendly label -> language code sent to the API ("" means auto-detect).
