@@ -7,11 +7,14 @@ interchangeable speech-to-text backends underneath.
 
 ## Pipeline
 
+Both front-ends are thin: the Streamlit UI imports the pipeline and runs it
+**in-process**, while FastAPI wraps the same `TranscriptionService` over HTTP.
+
 ```mermaid
 flowchart TD
     U[User] -->|upload audio| ST[Streamlit UI]
     U -->|POST /v1/transcribe| API[FastAPI]
-    ST -->|HTTP| API
+    ST -->|in-process call| VAL
     API --> VAL[Audio validation<br/>exists · format · size]
     VAL --> LEN{Duration ><br/>threshold?}
     LEN -->|no| SVC[Transcription Service]

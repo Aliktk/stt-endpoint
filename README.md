@@ -24,17 +24,24 @@ Requires [uv](https://docs.astral.sh/uv/) and `ffmpeg` on your PATH
 ```bash
 uv sync --extra dev --extra ui                     # create the venv and install everything
 cp .env.example .env                               # optional — add provider keys
-uv run uvicorn app.main:app --reload --port 8080   # API on http://localhost:8080
+
+# Option A — the demo UI (self-contained, no server needed)
 uv run streamlit run streamlit_app/app.py          # UI on http://localhost:8501
+
+# Option B — the HTTP API
+uv run uvicorn app.main:app --reload --port 8080   # API on http://localhost:8080
 ```
+
+The **UI and the API are two independent entry points to the same pipeline**. The
+Streamlit app imports the `app` package and runs transcription in-process, so it
+works on its own — you do **not** need the API running to use it.
 
 > **Run these from the project root** (the folder with `pyproject.toml`), **not**
 > from inside `app/` — the import path is `app.main:app`.
 >
 > **Windows `WinError 10013` (socket access forbidden)?** The port is taken or
-> reserved. Pick another one, e.g. `--port 8090`, and set the same URL in the
-> Streamlit UI under *Advanced settings*. Check what holds a port with
-> `Get-NetTCPConnection -LocalPort 8080`.
+> reserved. Pick another one, e.g. `uvicorn app.main:app --port 8090`. Check what
+> holds a port with `Get-NetTCPConnection -LocalPort 8080`.
 
 Open the interactive API docs at **http://localhost:8080/docs**.
 

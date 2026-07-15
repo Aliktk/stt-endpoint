@@ -28,6 +28,11 @@ class TranscriptionService:
         self._chunk_threshold = chunk_threshold_seconds
         self._max_upload_mb = max_upload_mb
 
+    @property
+    def provider_names(self) -> list[str]:
+        """Names of the available providers, in fallback order."""
+        return [provider.name for provider in self._providers]
+
     def transcribe(self, audio_path: Path, language: str | None = None) -> TranscriptionResult:
         validate_audio(audio_path, self._max_upload_mb)
 

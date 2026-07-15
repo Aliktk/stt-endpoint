@@ -1,19 +1,29 @@
 """Streamlit demo front-end for the STT endpoint.
 
-Talks to the FastAPI service over HTTP so the whole stack is exercised end to
-end. Every network call degrades to a friendly message rather than a traceback.
+The UI runs the transcription pipeline in-process by importing the ``app``
+package directly — no separate API server needed. The FastAPI service is a
+second, independent way to use the very same pipeline.
 """
 
 import json
+import sys
+import tempfile
 import time
+from pathlib import Path
 
-import requests
 import streamlit as st
 
-DEFAULT_API = "http://localhost:8080"
+# Make the project root importable when launched as `streamlit run …`.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from app.config import get_settings  # noqa: E402
+from app.errors import TranscriptionError  # noqa: E402
+from app.providers.registry import build_providers  # noqa: E402
+from app.services.transcription_service import TranscriptionService  # noqa: E402
+
 UPLOAD_TYPES = ["wav", "mp3", "m4a", "flac", "ogg", "webm", "mp4", "aac"]
 
-# Friendly label -> language code sent to the API ("" means auto-detect).
+# Friendly label -> language code passed to the pipeline ("" means auto-detect).
 LANGUAGES = {
     "Auto-detect": "",
     "English": "en",
@@ -35,23 +45,32 @@ LANGUAGES = {
 st.set_page_config(page_title="STT Endpoint", page_icon="🎙️", layout="centered")
 
 
-def fetch_providers(api_url: str) -> list[str] | None:
-    """Return available providers, or None when the API is unreachable."""
-    try:
-        resp = requests.get(f"{api_url}/v1/providers", timeout=5)
-        resp.raise_for_status()
-        return resp.json().get("available", [])
-    except requests.RequestException:
-        return None
+@st.cache_resource(show_spinner=False)
+def get_service() -> TranscriptionService:
+    """Build the pipeline once and reuse it across reruns.
 
-
-def request_transcript(api_url: str, name: str, blob: bytes, language: str) -> requests.Response:
-    return requests.post(
-        f"{api_url}/v1/transcribe",
-        files={"file": (name, blob)},
-        data={"language": language} if language else None,
-        timeout=1800,
+    Caching keeps the local whisper model loaded instead of reloading it on
+    every interaction.
+    """
+    settings = get_settings()
+    return TranscriptionService(
+        providers=build_providers(settings),
+        chunk_threshold_seconds=settings.chunk_threshold_seconds,
+        max_upload_mb=settings.max_upload_mb,
     )
+
+
+def transcribe_upload(uploaded, language: str) -> dict:
+    """Persist the upload to a temp file and run it through the pipeline."""
+    suffix = Path(uploaded.name).suffix or ".wav"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(uploaded.getvalue())
+        temp_path = Path(tmp.name)
+    try:
+        result = get_service().transcribe(temp_path, language or None)
+        return result.model_dump()
+    finally:
+        temp_path.unlink(missing_ok=True)
 
 
 def format_timestamp(seconds: float) -> str:
@@ -154,10 +173,8 @@ def inject_styles() -> None:
     )
 
 
-def render_status(providers: list[str] | None) -> None:
-    if providers is None:
-        body = "<span class='pill pill-off'>● API offline</span>"
-    elif providers:
+def render_status(providers: list[str]) -> None:
+    if providers:
         pills = "".join(f"<span class='pill pill-live'>● {p}</span>" for p in providers)
         body = f"<span class='label'>Providers online</span>{pills}"
     else:
@@ -221,10 +238,7 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
-    with st.expander("Advanced settings"):
-        api_url = st.text_input("API URL", value=DEFAULT_API).rstrip("/")
-
-    render_status(fetch_providers(api_url))
+    render_status(get_service().provider_names)
 
     uploaded = st.file_uploader("Upload an audio file", type=UPLOAD_TYPES)
     if uploaded is None:
@@ -235,24 +249,17 @@ def main() -> None:
     picker, action = st.columns([2, 1])
     label = picker.selectbox("Language", list(LANGUAGES), index=0)
     action.markdown("<div style='height:1.75rem'></div>", unsafe_allow_html=True)
-    go = action.button("Transcribe", type="primary", use_container_width=True)
-    if not go:
+    if not action.button("Transcribe", type="primary", use_container_width=True):
         return
 
     started = time.time()
     with st.spinner("Transcribing… larger files are chunked automatically."):
         try:
-            resp = request_transcript(api_url, uploaded.name, uploaded.getvalue(), LANGUAGES[label])
-        except requests.RequestException as exc:
-            st.error(f"Could not reach the API at {api_url}. Is it running? ({exc})")
+            data = transcribe_upload(uploaded, LANGUAGES[label])
+        except TranscriptionError as exc:
+            st.error(f"Transcription failed: {exc}")
             return
 
-    if resp.status_code != 200:
-        detail = resp.json().get("detail", resp.text) if resp.content else resp.reason
-        st.error(f"Transcription failed: {detail}")
-        return
-
-    data = resp.json()
     render_result(data, time.time() - started, uploaded.name)
     if data["text"]:
         st.toast("Transcription complete!", icon="✅")
@@ -262,7 +269,7 @@ def main() -> None:
 def render_footer() -> None:
     st.markdown(
         "<div class='app-footer'>Powered by ElevenLabs · Deepgram · faster-whisper "
-        "— served over FastAPI</div>",
+        "— runs the FastAPI pipeline in-process</div>",
         unsafe_allow_html=True,
     )
 

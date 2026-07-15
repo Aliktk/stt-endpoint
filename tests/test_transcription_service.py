@@ -55,3 +55,12 @@ def test_service_raises_with_no_providers(tmp_path):
     service = TranscriptionService(providers=[], chunk_threshold_seconds=600, max_upload_mb=100)
     with pytest.raises(AllProvidersFailedError):
         service.transcribe(_audio(tmp_path))
+
+
+def test_provider_names_lists_providers_in_order():
+    service = TranscriptionService(
+        providers=[_Stub("elevenlabs"), _Stub("local")],
+        chunk_threshold_seconds=600,
+        max_upload_mb=100,
+    )
+    assert service.provider_names == ["elevenlabs", "local"]
