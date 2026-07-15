@@ -1,7 +1,8 @@
 from functools import lru_cache
+from typing import Annotated
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -10,7 +11,9 @@ class Settings(BaseSettings):
     elevenlabs_api_key: str | None = Field(default=None, alias="ELEVENLABS_API_KEY")
     deepgram_api_key: str | None = Field(default=None, alias="DEEPGRAM_API_KEY")
 
-    provider_order: list[str] = Field(
+    # NoDecode stops pydantic-settings from JSON-parsing this list from the
+    # environment; the validator below accepts a plain comma-separated string.
+    provider_order: Annotated[list[str], NoDecode] = Field(
         default=["elevenlabs", "deepgram", "local"], alias="PROVIDER_ORDER"
     )
 
